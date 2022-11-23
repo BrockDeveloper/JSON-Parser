@@ -1,14 +1,40 @@
-% wrap, converte la stringa in ingresso in un array di caratteri
+
+% jsonParse
 %
-eval(String) :-
-    string_chars(String, CharString),
-    whitespace(CharString, CharStringOut),
-    is_number(CharStringOut).
+% Parse di un value JSON qualunque:
+% - può essere un oggetto a sua volta
+% - oppure una array
+% - oppure una stringa
+% - oppure un numero
+%
+
+% jsonParse caso booleano negativo
+%
+jsonParse(JsonString, false) :-
+    strip(JsonString, JsonStringStripped),
+    JsonStringStripped == "false".
+
+% jsonParse caso booleano positivo
+%
+jsonParse(JsonString, true) :-
+    strip(JsonString, JsonStringStripped),
+    JsonStringStripped == "true".
+
+% jsonParse caso valore numerico
+%
+jsonParse(JsonString, Number) :-
+    strip(JsonString, JsonStringStripped),
+    number_string(Number, JsonStringStripped).
 
 
-% gestione degli whitespace
+
+
+
+
+
+% Strip degli whitespace
 %
-whitespace([' ' | String], StringOut) :-
-    whitespace(String, StringOut),
+strip([' ' | String], StringOut) :-
+    strip(String, StringOut),
     !.
-whitespace(String, String).
+strip(String, String).
