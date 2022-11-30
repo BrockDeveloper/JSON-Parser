@@ -12,22 +12,14 @@ jbool(true, true).
 jbool(false, false).
 jbool(null, null).
 
-jstring(S, S) :-
-    string(S).
-jnumber(N, N) :-
-    number(N).
+jstring(S, S) :- string(S).
+jnumber(N, N) :- number(N).
 
-jvalue(S, Val) :-
-    jbool(S, Val).
-jvalue(S, Val) :-
-    jarray(S, Val).
-jvalue(S, Val) :-
-    jobject(S, Val).
-jvalue(S, Val) :-
-    jnumber(S, Val).
-jvalue(S, Val) :-
-    jstring(S, Val).
-
+jvalue(S, Val) :- jbool(S, Val).
+jvalue(S, Val) :- jarray(S, Val).
+jvalue(S, Val) :- jobject(S, Val).
+jvalue(S, Val) :- jnumber(S, Val).
+jvalue(S, Val) :- jstring(S, Val).
 
 jarray([], jsonarray([])) :- !.
 jarray([X|Xs], jsonarray([Out|Outs])) :-
@@ -38,22 +30,19 @@ jpair(Name: Value, (Key, Out)) :-
     jstring(Name, Key),
     jvalue(Value, Out).
 
-jobject({}, jsonobject([])) :- !.
-jobject({X}, jsonobject([Out])) :-
-    jpair(X, Out),
-    !.
-jobject({X}, jsonobject([Out|Outs])) :-
+jobject({}, jsonobj([])) :- !.
+jobject({X}, jsonobj([Out])) :-
+    jpair(X, Out), !.
+jobject({X}, jsonobj([Out|Outs])) :-
     X =.. [',', X1, X2],
     jpair(X1, Out),
-    jobject({X2}, jsonobject(Outs)).
+    jobject({X2}, jsonobj(Outs)).
 
 json_parse(X, Out) :-
     string(X),
     atom_string(Atom, X),
     json_parse(Atom, Out).
-
 json_parse(X, Out) :- 
     atom(X),
     term_to_atom(Term, X),
-    jvalue(Term, Out),
-    !.
+    jvalue(Term, Out), !.
