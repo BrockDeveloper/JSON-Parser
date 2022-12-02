@@ -3,7 +3,7 @@
  Libreria per il parsing del formato JSON
  
  @author 886155 Andrea Broccoletti
- @author 886261 Damiano Pellegrini
+ @author 886261 Damiano Pellegrini <damiano1.pellegrini@gmail.com>
  @version 1.0
  */
 :- module(json, [jsonparse/2, jsonaccess/3]).
