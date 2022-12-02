@@ -6,7 +6,7 @@
  @author 886261 Damiano Pellegrini <damiano1.pellegrini@gmail.com>
  @version 1.0
  */
-:- module(json, [jsonparse/2, jsonaccess/3]).
+:- module(json, [jsonparse/2, jsonaccess/3, jsonread/2, jsondump/2]).
 
 jbool(true, true).
 jbool(false, false).
@@ -84,4 +84,20 @@ jsonaccess(jsonarray([_ | Vs]), [Id | Idx], Out) :-
     Id > 0,
     NxId is Id - 1,
     jsonaccess(jsonarray(Vs), [NxId | Idx], Out),
+    !.
+
+jsonread(File, Obj) :-
+    access_file(File, read),
+    open(File, read, Stream),
+    read_string(Stream, _, String),
+    close(Stream),
+    jsonparse(String, Obj),
+    !.
+
+jsondump(Obj, File) :-
+    access_file(File, write),
+    open(File, write, Stream),
+    jsonparse(String, Obj),
+    write(Stream, String),
+    close(Stream),
     !.
