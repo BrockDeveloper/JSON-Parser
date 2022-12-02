@@ -41,19 +41,20 @@ jobject({X}, jsonobj([Out|Outs])) :-
 
 jsonparse(X, Out) :-
     string(X),
-    var(Out),
     atom_string(Atom, X),
     jsonparse(Atom, Out).
 
 jsonparse(X, Out) :- 
     atom(X),
-    var(Out),
-    term_to_atom(Term, X),
+    catch(
+        term_to_atom(Term, X),
+        error(syntax_error(cannot_start_term), _),
+        fail
+    ),
     jvalue(Term, Out),
     !.
 
 jsonparse(Out, X) :-
-    var(Out),
     nonvar(X),
     jvalue(Term, X),
     term_to_atom(Term, Out),
