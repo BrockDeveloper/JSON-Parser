@@ -6,7 +6,7 @@
  @author 886261 Damiano Pellegrini
  @version 1.0
  */
-:- module(json, []).
+:- module(json, [jsonparse/2, jsonaccess/3]).
 
 jbool(true, true).
 jbool(false, false).
@@ -62,7 +62,8 @@ jsonparse(Out, X) :-
 jsonaccess(jsonobj(T), [], jsonobj(T)) :- !.
 jsonaccess(O, Key, R) :- 
     string(Key),
-    jsonaccess(O,[Key],R).
+    jsonaccess(O,[Key],R),
+    !.
 jsonaccess(jsonobj([(Key, Value) | _]), [Key], Value) :- !.
 jsonaccess(jsonobj([(Key, Value) | _]), [Key | Keys], Out) :-
     jsonaccess(Value, Keys, Out),
@@ -74,7 +75,8 @@ jsonaccess(jsonobj([_ | Ps]), [Key | Keys], Out) :-
 jsonaccess(jsonarray([Value | _]), [0], Value) :- !.
 jsonaccess(O, N, R) :-
     number(N),
-    jsonaccess(O, [N], R).
+    jsonaccess(O, [N], R),
+    !.
 jsonaccess(jsonarray([Value | _]), [0 | Idx], Out) :-
     jsonaccess(Value, Idx, Out),
     !.
