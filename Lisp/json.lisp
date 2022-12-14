@@ -44,16 +44,34 @@
   nil
 )
 
+(defun json-read-digits (stream)
+  nil
+)
+
+(defun json-read-fraction (stream)
+  nil
+)
+
+(defun json-read-exponent (stream)
+  nil
+)
+
+(defun json-read-number (stream)
+  nil
+)
+
 ; Reads an escape sequence (after \)
 (defun json-read-escape (stream)
+  "Reads an escape sequence from a stream (after a \\)"
   (let ((c (read-char stream nil)))
     ; Decl
     (unless c
-      (error "JSON error: unexpected eof"))
+      (error "expected escape sequence"))
 
     (case c
-      (#\" #\")
-      (#\\ #\\)
+      ; (#\" #\")
+      ; (#\\ #\\)
+      ; (#\/ #\/)
       (#\n #\linefeed)
       (#\t #\tab)
       (#\f "\f")
@@ -89,6 +107,7 @@
 )
 
 (defun json-read-string (stream)
+  "Reads a JSON string from a stream"
   ; Starts with " and removes from stream
   (json-read-char stream #\" :ignore-ws t)
 
@@ -98,7 +117,7 @@
       (let ((c (read-char stream nil)))
         ; Decl
         (unless c
-          (error "JSON error: unexpected eof")
+          (error "expected \" or any other character")
         )
 
         (case c
@@ -112,3 +131,64 @@
     )
   )
 )
+
+(defun json-read-array (stream)
+  "Reads a JSON array from a stream"
+  ; Starts with [ and removes from stream
+  (json-read-char stream #\[ :ignore-ws t)
+
+  ; If empty return empty list and remove ]
+  (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array nil))
+  ; (when (char-equal (peek-char t stream) #\]) (return-from json-read-array nil))
+  (loop
+    for V = (json-read-value stream)
+    collect V
+    into Vs
+    
+    ; Skip comma and repeat
+    while (json-read-char stream #\, :ignore-ws t)
+
+    ; There are no other values
+    finally (return (when (json-read-char stream #\] :ignore-ws t) Vs))
+  )
+)
+
+(defun json-read-object (stream)
+  "Reads a JSON object from a stream"
+  ; Starts with { and removes from stream
+  (json-read-char stream #\{ :ignore-ws t)
+
+  ; If empty return empty list and remove }
+  (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object nil))
+  (loop
+    for key = (json-read-string stream)
+    for sep = (json-read-char stream #\: :ignore-ws t)
+    for value = (json-read-value stream)
+    collect (list key value)
+    into Vs
+    
+    ; Skip comma and repeat
+    while (json-read-char stream #\, :ignore-ws t)
+
+    ; There are no other values
+    finally (return (when (json-read-char stream #\} :ignore-ws t) Vs))
+  )
+)
+
+(defun json-read-value (stream)
+  "Reads a JSON value from a stream"
+  (case (peek-char t stream)
+    (#\t (json-read-true stream))
+    (#\f (json-read-false stream))
+    (#\n (json-read-null stream))
+    (#\" (json-read-string stream))
+    (#\[ (json-read-array stream))
+    (#\{ (json-read-object stream))
+    (otherwise (json-read-number stream))
+  )
+)
+
+(format t "empty array: ~s~%" (json-read-value (make-string-input-stream "  [  ]")))
+(format t "~s~%" (json-read-value (make-string-input-stream "[\"name\", true, null]")))
+(format t "empty object: ~s~%" (json-read-value (make-string-input-stream "  {  }")))
+(format t "~s" (json-read-value (make-string-input-stream "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, null]}}")))
