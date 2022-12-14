@@ -45,19 +45,43 @@
 )
 
 (defun json-read-digits (stream)
-  nil
-)
+  "Reads a sequence of digits from a stream"
+  (with-output-to-string (out)
+    (loop
+      (let ((c (peek-char nil stream)))
+        ; Decl
+        ; exits loop if not a digit
+        (unless (digit-char-p c)
+          (return out)
+        )
 
-(defun json-read-fraction (stream)
-  nil
-)
-
-(defun json-read-exponent (stream)
-  nil
+        (write-char (read-char stream) out)
+      )
+    )
+  )
 )
 
 (defun json-read-number (stream)
-  nil
+  "Reads a JSON number from a stream"
+  (read-from-string (with-output-to-string (out)
+    ; Reads the minus sign if present
+    (when (json-read-char stream #\- :ignore-ws t) (write-char #\- out))
+    ; Reads the integer part
+    (write-string (json-read-digits stream) out)
+
+    ; Reads the decimal part if present
+    (when (json-read-char stream #\.)
+      (write-char #\. out)
+      (write-string (json-read-digits stream) out)
+    )
+
+    ; Reads the exponent part if present
+    (when (json-read-char stream #\e) (write-char #\e out)
+      (when (json-read-char stream #\+) (write-char #\+ out))
+      (when (json-read-char stream #\-) (write-char #\- out))
+      (write-string (json-read-digits stream) out)
+    )
+  ))
 )
 
 ; Reads an escape sequence (after \)
@@ -191,4 +215,4 @@
 (format t "empty array: ~s~%" (json-read-value (make-string-input-stream "  [  ]")))
 (format t "~s~%" (json-read-value (make-string-input-stream "[\"name\", true, null]")))
 (format t "empty object: ~s~%" (json-read-value (make-string-input-stream "  {  }")))
-(format t "~s" (json-read-value (make-string-input-stream "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, null]}}")))
+(format t "~s" (json-read-value (make-string-input-stream "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}")))
