@@ -1,15 +1,9 @@
-;
-; JSON parser
-; 
-; Author: Broccoletti Andrea 886155
-; Author: Damiano Pellegrini 886261
-;
 (defpackage :json
-  (:export
-  )
-)
+    (:export
+    ))
 
 (in-package :json)
+
 
 (defun json-read-char (stream char &key (ignore-ws nil))
   "Read a char from a stream if present."
@@ -50,29 +44,20 @@
   nil
 )
 
-; out-stream is a class so it's passed by reference
-(defun json-read-digits-h (stream out-stream)
-  (let ((*c* (peek-char nil stream)))
-    ; Decl
-    (unless *c*
-      (error "unexpected eof"))
-
-    ; If not a digit return
-    (unless (digit-char-p *c*)
-      (return-from json-read-digits-h T)
-    )
-
-    ; Char is digit write to out stream
-    (write-char (read-char stream) out-stream)
-
-    (json-read-digits-h stream out-stream)
-  )
-)
-
 (defun json-read-digits (stream)
-  "Reads a sequence of digits from a stream as a string"
+  "Reads a sequence of digits from a stream"
   (with-output-to-string (out)
-    (json-read-digits-h stream out)
+    (loop
+      (let ((*c* (peek-char nil stream)))
+        ; Decl
+        ; exits loop if not a digit
+        (unless (digit-char-p *c*)
+          (return out)
+        )
+
+        (write-char (read-char stream) out)
+      )
+    )
   )
 )
 
@@ -113,7 +98,7 @@
       ; (#\/ #\/)
       (#\n #\linefeed)
       (#\t #\tab)
-      (#\f #\page) ; porcodio #\formfeed non esiste è #\page
+      (#\f "\f")
       (#\b #\backspace)
       (#\r #\return)
 
@@ -145,52 +130,29 @@
   )
 )
 
-; out-stream is a class so it's passed by reference
-(defun json-read-string-h (stream out-stream &key until (escapes nil))
-  "Reads a JSON string from a stream until a char is found"
-
-  (let ((*c* (read-char stream nil)))
-    ; Decl
-    (unless *c*
-      (error "unexpected eof"))
-
-    ; Stop reading, return
-    (when (char-equal *c* until)
-      (return-from json-read-string-h T)
-    )
-    ; Got an escape read it or else write the read character
-    (if (and (char-equal *c* #\\) escapes)
-      (write-char (json-read-escape stream) out-stream)
-      (write-char *c* out-stream)
-    )
-
-    (json-read-string-h stream out-stream :until until :escapes escapes)
-  )
-)
-
-(defun json-read-string (stream &key (escapes t))
+(defun json-read-string (stream)
   "Reads a JSON string from a stream"
-
   ; Starts with " and removes from stream
   (json-read-char stream #\" :ignore-ws t)
 
   (with-output-to-string (out)
-    (json-read-string-h stream out :until #\" :escapes escapes)
-  )
-)
+    ; Decl
+    (loop
+      (let ((*c* (read-char stream nil)))
+        ; Decl
+        (unless *c*
+          (error "expected \" or any other character")
+        )
 
-(defun json-read-array-h (stream out-list)
-  ; Read a value and push to list
-  (push (json-read-value stream) out-list)
-
-  ; End recursion if there is a ] and return reverse of list
-  (when (json-read-char stream #\] :ignore-ws t)
-    (return-from json-read-array-h (reverse out-list))
-  )
-
-  ; Recurse if there is a comma and remove it
-  (when (json-read-char stream #\, :ignore-ws t)
-    (json-read-array-h stream out-list)
+        (case *c*
+          ; End of string
+          (#\" (return))
+          ; Escape sequence
+          (#\\ (write-char (json-read-escape stream) out))
+          (otherwise (write-char *c* out))
+        )
+      )
+    )
   )
 )
 
@@ -201,32 +163,17 @@
 
   ; If empty return empty list and remove ]
   (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array nil))
+  ; (when (char-equal (peek-char t stream) #\]) (return-from json-read-array nil))
+  (loop
+    for V = (json-read-value stream)
+    collect V
+    into Vs
+    
+    ; Skip comma and repeat
+    while (json-read-char stream #\, :ignore-ws t)
 
-  (json-read-array-h stream (list))
-)
-
-(defun json-read-object-h (stream out-list)
-  ; Read a value and push to list
-
-  ; Read key
-  (let ((*key* (json-read-string stream)))
-    ; Read :
-    (json-read-char stream #\: :ignore-ws t)
-    ; Read value
-    (let ((*value* (json-read-value stream)))
-      ; Push to list
-      (push (list *key* *value*) out-list)
-    )
-  )
-
-  ; End recursion if there is a ] and return reverse of list
-  (when (json-read-char stream #\} :ignore-ws t)
-    (return-from json-read-object-h (reverse out-list))
-  )
-
-  ; Recurse if there is a comma and remove it
-  (when (json-read-char stream #\, :ignore-ws t)
-    (json-read-object-h stream out-list)
+    ; There are no other values
+    finally (return (when (json-read-char stream #\] :ignore-ws t) Vs))
   )
 )
 
@@ -237,8 +184,19 @@
 
   ; If empty return empty list and remove }
   (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object nil))
+  (loop
+    for key = (json-read-string stream)
+    for sep = (json-read-char stream #\: :ignore-ws t)
+    for value = (json-read-value stream)
+    collect (list key value)
+    into Vs
+    
+    ; Skip comma and repeat
+    while (json-read-char stream #\, :ignore-ws t)
 
-  (json-read-object-h stream (list))
+    ; There are no other values
+    finally (return (when (json-read-char stream #\} :ignore-ws t) Vs))
+  )
 )
 
 (defun json-read-value (stream)
@@ -254,10 +212,7 @@
   )
 )
 
-(format t "empty string: ~s~%" (json-read-value (make-string-input-stream "      \"\"")))
-(format t "string: ~s~%" (json-read-value (make-string-input-stream "      \"sono una stringa\"")))
-(format t "string con escapes: ~s~%" (json-read-value (make-string-input-stream "      \"sono\\tuna\\fstringa\\ncon escape\"")))
 (format t "empty array: ~s~&" (json-read-value (make-string-input-stream "  [  ]")))
-(format t "~s~&" (json-read-value (make-string-input-stream "[\"name\", true, null, 31.415e-1]")))
+(format t "~s~&" (json-read-value (make-string-input-stream "[\"name\", true, null]")))
 (format t "empty object: ~s~&" (json-read-value (make-string-input-stream "  {  }")))
 (format t "~s~&" (json-read-value (make-string-input-stream "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}")))
