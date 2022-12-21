@@ -52,15 +52,16 @@
 
 ; out-stream is a class so it's passed by reference
 (defun json-read-digits-h (stream out-stream)
-  (let ((*c* (peek-char nil stream)))
+  (let ((*c* (peek-char nil stream nil)))
     ; Decl
     (unless *c*
-      (error "unexpected eof"))
+      (return-from json-read-digits-h T))
 
     ; If not a digit return
     (unless (digit-char-p *c*)
       (return-from json-read-digits-h T)
     )
+
 
     ; Char is digit write to out stream
     (write-char (read-char stream) out-stream)
@@ -85,13 +86,14 @@
     (write-string (json-read-digits stream) out)
 
     ; Reads the decimal part if present
-    (when (json-read-char stream #\.)
+    (when (char-equal (peek-char nil stream nil) #\.)
+      (json-read-char stream #\.)
       (write-char #\. out)
       (write-string (json-read-digits stream) out)
     )
-
     ; Reads the exponent part if present
-    (when (json-read-char stream #\e) (write-char #\e out)
+    (when (equal (peek-char nil stream nil) #\e)
+      (json-read-char stream #\e) (write-char #\e out)
       (when (json-read-char stream #\+) (write-char #\+ out))
       (when (json-read-char stream #\-) (write-char #\- out))
       (write-string (json-read-digits stream) out)
@@ -113,7 +115,7 @@
       ; (#\/ #\/)
       (#\n #\linefeed)
       (#\t #\tab)
-      (#\f #\page) ; porcodio #\formfeed non esiste è #\page
+      (#\f #\page) ; #\formfeed non esiste è #\page
       (#\b #\backspace)
       (#\r #\return)
 
@@ -202,7 +204,7 @@
   ; If empty return empty list and remove ]
   (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array nil))
 
-  (json-read-array-h stream (list))
+  (json-read-array-h stream (list 'jsonarray))
 )
 
 (defun json-read-object-h (stream out-list)
@@ -238,7 +240,7 @@
   ; If empty return empty list and remove }
   (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object nil))
 
-  (json-read-object-h stream (list))
+  (json-read-object-h stream (list 'jsonobj))
 )
 
 (defun json-read-value (stream)
@@ -254,10 +256,142 @@
   )
 )
 
-(format t "empty string: ~s~%" (json-read-value (make-string-input-stream "      \"\"")))
-(format t "string: ~s~%" (json-read-value (make-string-input-stream "      \"sono una stringa\"")))
-(format t "string con escapes: ~s~%" (json-read-value (make-string-input-stream "      \"sono\\tuna\\fstringa\\ncon escape\"")))
-(format t "empty array: ~s~&" (json-read-value (make-string-input-stream "  [  ]")))
-(format t "~s~&" (json-read-value (make-string-input-stream "[\"name\", true, null, 31.415e-1]")))
-(format t "empty object: ~s~&" (json-read-value (make-string-input-stream "  {  }")))
-(format t "~s~&" (json-read-value (make-string-input-stream "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}")))
+(defun json-write-true (stream)
+  "Writes a JSON true to a stream"
+  (write-string "true" stream)
+)
+
+(defun json-write-false (stream)
+  "Writes a JSON false to a stream"
+  (write-string "false" stream)
+)
+
+(defun json-write-null (stream)
+  "Writes a JSON null to a stream"
+  (write-string "null" stream)
+)
+
+(defun json-write-number (stream value)
+  "Writes a JSON number to a stream"
+  (unless (numberp value) (return-from json-write-number nil))
+  (write-string (format nil "~a" value) stream)
+)
+
+(defun json-write-string (stream value)
+  "Writes a JSON string to a stream"
+  (unless (stringp value) (return-from json-write-string nil))
+  (format stream "\"~a\"" value)
+)
+
+(defun json-write-array-h (stream vals)
+  (let ((value (first vals))
+        (rest (rest vals)))
+      ;  Decl
+    (json-write-value stream value)
+    (when (not (null rest))
+      (format stream ",")
+      (json-write-array-h stream rest)
+    )
+  )
+)
+
+(defun json-write-array (stream arr)
+  "Writes a JSON array to a stream"
+  (unless (listp arr) (return-from json-write-array nil))
+  (when (equal (first arr) 'jsonarray)
+    (let ((vals (rest arr)))
+      (format stream "[")
+      (json-write-array-h stream vals)
+      (format stream "]")
+    )
+  )
+)
+
+(defun json-write-object-h (stream vals)
+  (let ((key (first (first vals)))
+        (value (second (first vals)))
+        (rest (rest vals)))
+      ;  Decl
+    (json-write-string stream key)
+    (format stream ":")
+    (json-write-value stream value)
+    (when (not (null rest))
+      (format stream ",")
+      (json-write-object-h stream rest)
+    )
+  )
+)
+
+(defun json-write-object (stream obj)
+  "Writes a JSON object to a stream"
+  (unless (listp obj) (return-from json-write-object nil))
+  (when (equal (first obj) 'jsonobj)
+    (let ((vals (rest obj)))
+      (format stream "{")
+      (json-write-object-h stream vals)
+      (format stream "}")
+    )
+  )
+)
+
+(defun json-write-value (stream value)
+  "Writes a JSON value to a stream"
+  (when (numberp value)
+    (return-from json-write-value (json-write-number stream value))
+  )
+  (when (stringp value)
+    (return-from json-write-value (json-write-string stream value))
+  )
+  (when (listp value)
+    (return-from json-write-value (case (first value)
+      ('jsonarray (json-write-array stream value))
+      ('jsonobj (json-write-object stream value))
+    ))
+  )
+  (when (null value)
+    (return-from json-write-value (json-write-null stream))
+  )
+  (when (equal value 'false)
+    (return-from json-write-value (json-write-false stream))
+  )
+  (when value
+    (return-from json-write-value (json-write-true stream))
+  )
+)
+
+(defun jsonparse (string)
+  "Parses a JSON string"
+  (with-input-from-string (in string)
+    (json-read-value in)
+  )
+)
+
+(defun jsonread (path)
+  "Reads a JSON file"
+  (with-open-file (in path :direction :input)
+    (json-read-value in)
+  )
+)
+
+(defun jsondump (json path)
+  "Dumps a JSON object to a file"
+  (with-open-file (out path :direction :output)
+    (json-write-value out json)
+  )
+)
+
+; Read Tests
+(format t "number: ~s~%" (jsonparse "31.415e-1"))
+(format t "empty string: ~s~%" (jsonparse "      \"\""))
+(format t "string: ~s~%" (jsonparse "      \"sono una stringa\""))
+(format t "string con escapes: ~s~%" (jsonparse "      \"sono\\tuna\\fstringa\\ncon escape\""))
+(format t "empty array: ~s~&" (jsonparse "  [  ]"))
+(format t "~s~&" (jsonparse "[\"name\", true, null, 31.415e-1]"))
+(format t "empty object: ~s~&" (jsonparse "  {  }"))
+(format t "~s~&" (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))
+
+; Write Tests
+(format t "encoded: ~s~%" (with-output-to-string (out) (json-write-value out (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))))
+
+; Read/Write File Tests
+(jsondump (jsonread "test.json") "test1.json")
