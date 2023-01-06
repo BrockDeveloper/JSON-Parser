@@ -380,18 +380,41 @@
   )
 )
 
-; Read Tests
-(format t "number: ~s~%" (jsonparse "31.415e-1"))
-(format t "empty string: ~s~%" (jsonparse "      \"\""))
-(format t "string: ~s~%" (jsonparse "      \"sono una stringa\""))
-(format t "string con escapes: ~s~%" (jsonparse "      \"sono\\tuna\\fstringa\\ncon escape\""))
-(format t "empty array: ~s~&" (jsonparse "  [  ]"))
-(format t "~s~&" (jsonparse "[\"name\", true, null, 31.415e-1]"))
-(format t "empty object: ~s~&" (jsonparse "  {  }"))
-(format t "~s~&" (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))
+(defun jsonaccess (json &rest indices)
+  ; Se gli indici sono finiti ritorno la roba passata
+  (when (null (first indices)) (return-from jsonaccess json))
+  ; Se non è una lista ritorno nil
+  (unless (listp json) (return-from jsonaccess nil))
 
-; Write Tests
-(format t "encoded: ~s~%" (with-output-to-string (out) (json-write-value out (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))))
+  (let ((index (first indices))
+        (idxs (rest indices))
+        (discrim (first json))
+        (value (rest json)))
+    (case discrim
+      ('jsonobj (when (stringp index)
+        (apply #'jsonaccess (first (rest (assoc index value :test (lambda (a b) (string-equal a b))))) idxs)
+      ))
+      ('jsonarray (when (integerp index)
+        (jsonaccess (nth index value) idxs)
+      ))
+      (otherwise nil)
+  ))
+)
 
-; Read/Write File Tests
-(jsondump (jsonread "test.json") "test1.json")
+; ; Read Tests
+; (format t "number: ~s~%" (jsonparse "31.415e-1"))
+; (format t "empty string: ~s~%" (jsonparse "      \"\""))
+; (format t "string: ~s~%" (jsonparse "      \"sono una stringa\""))
+; (format t "string con escapes: ~s~%" (jsonparse "      \"sono\\tuna\\fstringa\\ncon escape\""))
+; (format t "empty array: ~s~&" (jsonparse "  [  ]"))
+; (format t "~s~&" (jsonparse "[\"name\", true, null, 31.415e-1]"))
+; (format t "empty object: ~s~&" (jsonparse "  {  }"))
+; (format t "~s~&" (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))
+; (format t "access_dami-array: ~s~&" (jsonaccess (jsonparse "[3, 4, 5]") 1))
+; (format t "access_dami-oggetto: ~s~&" (jsonaccess (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}") "null"))
+
+; ; Write Tests
+; (format t "encoded: ~s~%" (with-output-to-string (out) (json-write-value out (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))))
+
+; ; Read/Write File Tests
+; (jsondump (jsonread "test.json") "test1.json")
