@@ -3,10 +3,9 @@
  Libreria per il parsing del formato JSON
  
  @author 886155 Andrea Broccoletti
- @author 886261 Damiano Pellegrini <damiano1.pellegrini@gmail.com>
+ @author 886261 Damiano Pellegrini
  @version 1.0
  */
-:- module(json, [jsonparse/2, jsonaccess/3, jsonread/2, jsondump/2]).
 
 jbool(true, true).
 jbool(false, false).

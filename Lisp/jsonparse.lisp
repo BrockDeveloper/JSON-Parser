@@ -1,15 +1,9 @@
 ;
 ; JSON parser
 ; 
-; Author: Broccoletti Andrea 886155
-; Author: Damiano Pellegrini 886261
+; Author: 886155 Andrea Broccoletti
+; Author: 886261 Damiano Pellegrini
 ;
-(defpackage :json
-  (:export
-  )
-)
-
-(in-package :json)
 
 (defun json-read-char (stream char &key (ignore-ws nil))
   "Read a char from a stream if present."
