@@ -9,7 +9,6 @@
   "Read a char from a stream if present."
   (when (char-equal (peek-char ignore-ws stream) char)
     (read-char stream)
-    t
   )
 )
 
@@ -30,7 +29,7 @@
   (json-read-char stream #\l)
   (json-read-char stream #\s)
   (json-read-char stream #\e)
-  nil
+  'false
 )
 
 ; It returns nil but removes the char from the stream,
@@ -196,7 +195,9 @@
   (json-read-char stream #\[ :ignore-ws t)
 
   ; If empty return empty list and remove ]
-  (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array nil))
+  (when (json-read-char stream #\] :ignore-ws t)
+    (return-from json-read-array nil)
+  )
 
   (json-read-array-h stream (list 'jsonarray))
 )
@@ -232,7 +233,9 @@
   (json-read-char stream #\{ :ignore-ws t)
 
   ; If empty return empty list and remove }
-  (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object nil))
+  (when (json-read-char stream #\} :ignore-ws t)
+    (return-from json-read-object nil)
+  )
 
   (json-read-object-h stream (list 'jsonobj))
 )
@@ -386,7 +389,17 @@
         (value (rest json)))
     (case discrim
       ('jsonobj (when (stringp index)
-        (apply #'jsonaccess (first (rest (assoc index value :test (lambda (a b) (string-equal a b))))) idxs)
+        (apply #'jsonaccess
+          (first (rest (assoc
+                          index
+                          value
+                          :test (lambda (a b)
+                                  (string-equal a b))
+                       )
+                 )
+          )
+          idxs
+        )
       ))
       ('jsonarray (when (integerp index)
         (jsonaccess (nth index value) idxs)
@@ -394,21 +407,3 @@
       (otherwise nil)
   ))
 )
-
-; ; Read Tests
-; (format t "number: ~s~%" (jsonparse "31.415e-1"))
-; (format t "empty string: ~s~%" (jsonparse "      \"\""))
-; (format t "string: ~s~%" (jsonparse "      \"sono una stringa\""))
-; (format t "string con escapes: ~s~%" (jsonparse "      \"sono\\tuna\\fstringa\\ncon escape\""))
-; (format t "empty array: ~s~&" (jsonparse "  [  ]"))
-; (format t "~s~&" (jsonparse "[\"name\", true, null, 31.415e-1]"))
-; (format t "empty object: ~s~&" (jsonparse "  {  }"))
-; (format t "~s~&" (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))
-; (format t "access_dami-array: ~s~&" (jsonaccess (jsonparse "[3, 4, 5]") 1))
-; (format t "access_dami-oggetto: ~s~&" (jsonaccess (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}") "null"))
-
-; ; Write Tests
-; (format t "encoded: ~s~%" (with-output-to-string (out) (json-write-value out (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))))
-
-; ; Read/Write File Tests
-; (jsondump (jsonread "test.json") "test1.json")
