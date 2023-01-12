@@ -1,10 +1,11 @@
-;
-; JSON parser
-; 
-; Author: 886155 Andrea Broccoletti
-; Author: 886261 Damiano Pellegrini
-;
+;;;; Author: 886155 Andrea Broccoletti
+;;;; Author: 886261 Damiano Pellegrini
 
+
+;;;; json-parsing.l
+
+
+;;; read a char from a stream, if present.
 (defun json-read-char (stream char &key (ignore-ws nil))
   "Read a char from a stream if present."
   (when (char-equal (peek-char ignore-ws stream) char)
@@ -12,18 +13,19 @@
   )
 )
 
+
+;;; read the string \"true\" preceded by any whitespaces from a stream.
 (defun json-read-true (stream)
-  "Read the string \"true\" preceded by any whitespaces from a stream."
   (json-read-char stream #\t :ignore-ws t)
   (json-read-char stream #\r)
   (json-read-char stream #\u)
   (json-read-char stream #\e)
 )
 
-; It returns nil but removes the char from the stream,
-; seems like it fails but it doesn't
+
+;;; Read  the string \"false\" preceded by any whitespaces from a stream.
+;;; It returns false but removes the char from the stream.
 (defun json-read-false (stream)
-  "Read the string \"false\" preceded by any whitespaces from a stream."
   (json-read-char stream #\f :ignore-ws t)
   (json-read-char stream #\a)
   (json-read-char stream #\l)
@@ -32,10 +34,10 @@
   'false
 )
 
-; It returns nil but removes the char from the stream,
-; seems like it fails but it doesn't
+
+;;; Read  the string \"null\" preceded by any whitespaces from a stream.
+;;; It returns nil but removes the char from the stream.
 (defun json-read-null (stream)
-  "Read the string \"null\" preceded by any whitespaces from a stream."
   (json-read-char stream #\n :ignore-ws t)
   (json-read-char stream #\u)
   (json-read-char stream #\l)
@@ -43,7 +45,9 @@
   nil
 )
 
-; out-stream is a class so it's passed by reference
+
+;;; Read a JSON string from a stream.
+;;; out-stream is a class so it's passed by reference
 (defun json-read-digits-h (stream out-stream)
   (let ((*c* (peek-char nil stream nil)))
     ; Decl
@@ -63,15 +67,17 @@
   )
 )
 
+
+;;; Read a sequence of digits from a stream as a string
 (defun json-read-digits (stream)
-  "Reads a sequence of digits from a stream as a string"
   (with-output-to-string (out)
     (json-read-digits-h stream out)
   )
 )
 
+
+;;; Read a JSON number from a stream
 (defun json-read-number (stream)
-  "Reads a JSON number from a stream"
   (read-from-string (with-output-to-string (out)
     ; Reads the minus sign if present
     (when (json-read-char stream #\- :ignore-ws t) (write-char #\- out))
@@ -84,6 +90,7 @@
       (write-char #\. out)
       (write-string (json-read-digits stream) out)
     )
+
     ; Reads the exponent part if present
     (when (equal (peek-char nil stream nil) #\e)
       (json-read-char stream #\e) (write-char #\e out)
@@ -94,7 +101,8 @@
   ))
 )
 
-; Reads an escape sequence (after \)
+
+;;; Reads an escape sequence (after \)
 (defun json-read-escape (stream)
   "Reads an escape sequence from a stream (after a \\)"
   (let ((*c* (read-char stream nil)))
@@ -108,11 +116,11 @@
       ; (#\/ #\/)
       (#\n #\linefeed)
       (#\t #\tab)
-      (#\f #\page) ; #\formfeed non esiste è #\page
+      (#\f #\page) ; #\formfeed is #\page
       (#\b #\backspace)
       (#\r #\return)
 
-      ; Conversione unicode
+      ; unicode
       ; uABCD -> A = 0xA000
       ;          B = 0x0B00
       ;          C = 0x00C0
@@ -140,9 +148,10 @@
   )
 )
 
-; out-stream is a class so it's passed by reference
+
+;;; Read a JSON string from a stream until a char is found.
+;;; out-stream is a class so it's passed by reference
 (defun json-read-string-h (stream out-stream &key until (escapes nil))
-  "Reads a JSON string from a stream until a char is found"
 
   (let ((*c* (read-char stream nil)))
     ; Decl
@@ -163,8 +172,9 @@
   )
 )
 
+
+;;; Read a JSON string from a stream
 (defun json-read-string (stream &key (escapes t))
-  "Reads a JSON string from a stream"
 
   ; Starts with " and removes from stream
   (json-read-char stream #\" :ignore-ws t)
@@ -174,6 +184,8 @@
   )
 )
 
+
+;;; Read the content of a JSON array from a stream
 (defun json-read-array-h (stream out-list)
   ; Read a value and push to list
   (push (json-read-value stream) out-list)
@@ -189,6 +201,8 @@
   )
 )
 
+
+;;; Read a JSON array from a stream
 (defun json-read-array (stream)
   "Reads a JSON array from a stream"
   ; Starts with [ and removes from stream
@@ -202,6 +216,7 @@
   (json-read-array-h stream (list 'jsonarray))
 )
 
+;;; Read the content of a JSON object from a stream
 (defun json-read-object-h (stream out-list)
   ; Read a value and push to list
 
@@ -227,6 +242,8 @@
   )
 )
 
+
+;;; Read a JSON object from a stream
 (defun json-read-object (stream)
   "Reads a JSON object from a stream"
   ; Starts with { and removes from stream
@@ -240,8 +257,8 @@
   (json-read-object-h stream (list 'jsonobj))
 )
 
+;;; Read a JSON value from a stream
 (defun json-read-value (stream)
-  "Reads a JSON value from a stream"
   (case (peek-char t stream)
     (#\t (json-read-true stream))
     (#\f (json-read-false stream))
@@ -253,33 +270,35 @@
   )
 )
 
+;;; Writes a JSON value to a stream
 (defun json-write-true (stream)
-  "Writes a JSON true to a stream"
   (write-string "true" stream)
 )
 
+;;; Writes a JSON false to a stream
 (defun json-write-false (stream)
   "Writes a JSON false to a stream"
   (write-string "false" stream)
 )
 
+;;; Writes a JSON null to a stream
 (defun json-write-null (stream)
-  "Writes a JSON null to a stream"
   (write-string "null" stream)
 )
 
+;;; Writes a JSON number to a stream
 (defun json-write-number (stream value)
-  "Writes a JSON number to a stream"
   (unless (numberp value) (return-from json-write-number nil))
   (write-string (format nil "~a" value) stream)
 )
 
+;;; Writes a JSON string to a stream
 (defun json-write-string (stream value)
-  "Writes a JSON string to a stream"
   (unless (stringp value) (return-from json-write-string nil))
   (format stream "\"~a\"" value)
 )
 
+;;; Writes the content of a JSON array to a stream
 (defun json-write-array-h (stream vals)
   (let ((value (first vals))
         (rest (rest vals)))
@@ -292,8 +311,8 @@
   )
 )
 
+;;; Writes a JSON array to a stream
 (defun json-write-array (stream arr)
-  "Writes a JSON array to a stream"
   (unless (listp arr) (return-from json-write-array nil))
   (when (equal (first arr) 'jsonarray)
     (let ((vals (rest arr)))
@@ -304,6 +323,7 @@
   )
 )
 
+;;; Writes the content of a JSON object to a stream
 (defun json-write-object-h (stream vals)
   (let ((key (first (first vals)))
         (value (second (first vals)))
@@ -319,8 +339,8 @@
   )
 )
 
+;;; Writes a JSON object to a stream
 (defun json-write-object (stream obj)
-  "Writes a JSON object to a stream"
   (unless (listp obj) (return-from json-write-object nil))
   (when (equal (first obj) 'jsonobj)
     (let ((vals (rest obj)))
@@ -331,8 +351,8 @@
   )
 )
 
+;;; Writes a JSON value to a stream
 (defun json-write-value (stream value)
-  "Writes a JSON value to a stream"
   (when (numberp value)
     (return-from json-write-value (json-write-number stream value))
   )
@@ -356,31 +376,32 @@
   )
 )
 
+;;; Parses a JSON string
 (defun jsonparse (string)
-  "Parses a JSON string"
   (with-input-from-string (in string)
     (json-read-value in)
   )
 )
 
+;;; Reads a JSON file
 (defun jsonread (path)
-  "Reads a JSON file"
   (with-open-file (in path :direction :input)
     (json-read-value in)
   )
 )
 
+;;; Dumps a JSON object to a file
 (defun jsondump (json path)
-  "Dumps a JSON object to a file"
   (with-open-file (out path :direction :output)
     (json-write-value out json)
   )
 )
 
+;;; Access a JSON object
 (defun jsonaccess (json &rest indices)
-  ; Se gli indici sono finiti ritorno la roba passata
+  ; if indices is empty return json
   (when (null (first indices)) (return-from jsonaccess json))
-  ; Se non è una lista ritorno nil
+  ; if not a list, return nil
   (unless (listp json) (return-from jsonaccess nil))
 
   (let ((index (first indices))
