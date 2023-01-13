@@ -1,38 +1,37 @@
 %%%% Author: 886155 Andrea Broccoletti
 %%%% Author: 886261 Damiano Pellegrini
 
+
 %%%% -*- Mode: Prolog -*-
 %%%% jsonparse.pl
 
 
-%! jbool(+S, -Val) is det
-%  jbool/2 is true if Val is the boolean value represented by S.
+%! jbool(S, Val)
+%  jbool è vero se Val è il valore booleano rappresentato da S.
 %
 jbool(true, true).
 
-
-%! jbool(+S, -Val) is det
-%  jbool/2 is true if Val is the boolean value represented by S.
-%
 jbool(false, false).
 
 jbool(null, null).
 
 
-%! jstring(+S, -Val) is det
-%  jstring/2 is true if Val is the string represented by S.
+%! jstring(S, Val) 
+%  jstring è vero se Val è la stringa rappresentata da S.
 %
 jstring(S, S) :- string(S).
 
 
-%! jnumber(+S, -Val) is det
-%  jnumber/2 is true if Val is the number represented by S.
+%! jnumber(S, Val)
+%  jnumber è vero se Val è il numero rappresentato da S.
 %
 jnumber(N, N) :- number(N).
 
 
-%! jvalue(+S, -Val) is det
-%  jvalue/2 is true if Val is the value represented by S.
+%! jvalue(S, Val)
+%  jvalue è vero se Val è il valore rappresentato da S.
+%  Un valore può essere un oggetto, un array, una stringa, 
+%  un numero o un booleano.
 %
 jvalue(S, Val) :- jbool(S, Val).
 jvalue(S, Val) :- jarray(S, Val).
@@ -41,8 +40,9 @@ jvalue(S, Val) :- jnumber(S, Val).
 jvalue(S, Val) :- jstring(S, Val).
 
 
-%! jarray(+S, -Val) is det
-%  jarray/2 is true if Val is the array represented by S.
+%! jarray(S, Val)
+%  jarray è vero se Val è l'array rappresentato da S.
+%  Val è nella forma jsonarray([Val1, Val2, ..., Valn]).
 %
 jarray([], jsonarray([])) :- !.
 
@@ -51,16 +51,20 @@ jarray([X|Xs], jsonarray([Out|Outs])) :-
     jarray(Xs, jsonarray(Outs)).
 
 
-%! jpair(+S, -Val) is det
-%  jpair/2 is true if Val is the pair represented by S.
+%! jpair(S, Val)
+%  jpair è vero se Val è la coppia rappresentata da S.
+%  S è nella forma Name: Value.
+%  Val è nella forma (Key, Out) dove Key è la stringa Name
+%  e Out è il valore Value.
 %
 jpair(Name: Value, (Key, Out)) :-
     jstring(Name, Key),
     jvalue(Value, Out).
 
 
-%! jobject(+S, -Val) is det
-%  jobject/2 is true if Val is the object represented by S.
+%! jobject(S, Val)
+%  jobject è vero se Val è l'oggetto rappresentato da S.
+%  Val è nella forma jsonobj([(Key1, Val1), ..., (Keyn, Valn)]).
 %
 jobject({}, jsonobj([])) :- !.
 
@@ -74,8 +78,9 @@ jobject({X}, jsonobj([Out|Outs])) :-
     jobject({X2}, jsonobj(Outs)).
 
 
-%! jsonparse(+S, -Val) is det
-%  jsonparse/2 is true if Val is the value represented by S.
+%! jsonparse(S, Val)
+%  jsonparse è vero se Val è l'oggetto Prolog rappresentato 
+%  dalla stringa Json S.
 %
 jsonparse(X, Out) :-
     string(X),
@@ -85,6 +90,8 @@ jsonparse(X, Out) :-
 jsonparse(X, Out) :- 
     atom(X),
     catch(
+        % Se la stringa non è un json valido, 
+        % viene lanciata un'eccezione.
         term_to_atom(Term, X),
         error(syntax_error(cannot_start_term), _),
         fail
@@ -98,8 +105,12 @@ jsonparse(Out, X) :-
     term_to_atom(Term, Out),
     !.
 
-%! jsonaccess(+Obj, +Key, -Val) is det
-%  jsonaccess/3 is true if Val is the value of Obj at Key.
+
+%! jsonaccess(Obj, Key, Val)
+%! jsonaccess(Obj, Keys, Val)
+%  jsonaccess è vero se Val è il valore di Obj alla chiave Key,
+%  oppure se Val è il valore di Obj seguendo la sequenza di chiavi Keys.
+%  
 %
 jsonaccess(jsonobj(T), [], jsonobj(T)) :- !.
 
@@ -136,8 +147,9 @@ jsonaccess(jsonarray([_ | Vs]), [Id | Idx], Out) :-
     !.
 
 
-%! jsonread(+File, -Obj) is det
-%  jsonread/2 is true if Obj is the value represented by the file File.
+%! jsonread(File, Obj)
+%  jsonread è vero se Obj è il valore rappresentato dalla stringa
+%  Json contenuta nel file File.
 %
 jsonread(File, Obj) :-
     access_file(File, read),
@@ -148,8 +160,8 @@ jsonread(File, Obj) :-
     !.
 
 
-%! jsonwrite(+File, +Obj) is det
-%  jsonwrite/2 is true if Obj is written to the file File.
+%! jsonwrite(File, Obj)
+%  jsonwrite è vero se Obj è scritto nel file File come stringa Json.
 %
 jsondump(Obj, File) :-
     access_file(File, write),
