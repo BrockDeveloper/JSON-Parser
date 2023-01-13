@@ -12,6 +12,17 @@ rappresenta degli oggetti JSON, a partire dalla loro rappresentazione come
 stringhe.
 
 
+## Specifiche integrative
+- La stringa JSON fornita al jsonparse, viene convertita in atomo e poi
+  in termine. Se viene fornito un atomo, viene convertito in termine.
+  Il termine così ottenuto viene passato al parse, che si occupa di ricostruire
+  l'oggetto Prolog corrispondente alla stringa JSON, attraverso una serie di
+  unificazioni. Il predicato è invertibile, ovvero fornito un oggetto JSON, è
+  in grado di ricostruire la stringa JSON corrispondente.
+- In particolare, tutti i predicati sono invertibili.
+- Implementata la gestione dei caratteri UNICODE
+
+
 ## Struttura dati
 La sintassi della struttura dati che rappresenta l'oggetto JSON in Prolog
 è stata definita ricorsivamente nel modo seguente.
@@ -57,15 +68,10 @@ jsondump(JSON, FileName).
 Scrive l'oggetto JSON sul file in sintassi JSON.
 
 
-## Specifiche integrative
-- gestione dei caratteri UNICODE
-- utilizzo degli stream (@damiano here)
-
-
 ## Esempi di utilizzo
-Considerando i seguenti sono nella forma:
+Considerando i seguenti nella forma:
 <comando>
-<risposta>
+<risposta>*
 
 e.g. 1
 jsonparse('{"nome" : "Arthur", "cognome" : "Dent"}', O),

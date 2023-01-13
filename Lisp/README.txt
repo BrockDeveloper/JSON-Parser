@@ -12,6 +12,13 @@ rappresenta degli oggetti JSON, a partire dalla loro rappresentazione come
 stringhe.
 
 
+## Specifiche integrative
+- La funzione jsonparse riceve una stringa JSON. Questa viene trattata come UNICODE
+  stream, e il parsing viene effettuato carattere per carattere, leggendo questi
+  dallo stream associato alla stringa.
+- Implementata la gestione dei caratteri UNICODE
+
+
 ## Struttura dati
 La sintassi della struttura dati che rappresenta l'oggetto JSON in Common Lisp
 è stata definita ricorsivamente nel modo seguente.
@@ -51,11 +58,6 @@ oggetto JSON.
 JSONDUMP
 (jsondump JSON filename)
 Scrive l'oggetto JSON sul file in sintassi JSON.
-
-
-## Specifiche integrative
-- gestione dei caratteri UNICODE
-- utilizzo degli stream (@damiano here)
 
 
 ## Esempi di utilizzo
