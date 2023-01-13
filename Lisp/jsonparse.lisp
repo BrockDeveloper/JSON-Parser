@@ -5,16 +5,16 @@
 ;;;; json-parsing.l
 
 
-;;; read a char from a stream, if present.
+;;; Legge un carattere da uno stream, se presente.
 (defun json-read-char (stream char &key (ignore-ws nil))
-  "Read a char from a stream if present."
   (when (char-equal (peek-char ignore-ws stream) char)
     (read-char stream)
   )
 )
 
 
-;;; read the string \"true\" preceded by any whitespaces from a stream.
+;;; Legge la stringa \"true\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Restituisce true ma rimuove il carattere dallo stream.
 (defun json-read-true (stream)
   (json-read-char stream #\t :ignore-ws t)
   (json-read-char stream #\r)
@@ -23,8 +23,8 @@
 )
 
 
-;;; Read  the string \"false\" preceded by any whitespaces from a stream.
-;;; It returns false but removes the char from the stream.
+;;; Legge la stringa \"false\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Restituisce false ma rimuove il carattere dallo stream.
 (defun json-read-false (stream)
   (json-read-char stream #\f :ignore-ws t)
   (json-read-char stream #\a)
@@ -35,8 +35,8 @@
 )
 
 
-;;; Read  the string \"null\" preceded by any whitespaces from a stream.
-;;; It returns nil but removes the char from the stream.
+;;; Legge la stringa \"null\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Restituisce nil ma rimuove il carattere dallo stream.
 (defun json-read-null (stream)
   (json-read-char stream #\n :ignore-ws t)
   (json-read-char stream #\u)
@@ -46,21 +46,19 @@
 )
 
 
-;;; Read a JSON string from a stream.
-;;; out-stream is a class so it's passed by reference
+;;; Legge una stringa JSON da uno stream.
+;;; out-stream è una classe quindi viene passato per riferimento.
 (defun json-read-digits-h (stream out-stream)
   (let ((*c* (peek-char nil stream nil)))
-    ; Decl
     (unless *c*
       (return-from json-read-digits-h T))
 
-    ; If not a digit return
+    ; Se non è una cifra, termina
     (unless (digit-char-p *c*)
       (return-from json-read-digits-h T)
     )
 
-
-    ; Char is digit write to out stream
+    ; Char è una cifra, scrive sull'output stream
     (write-char (read-char stream) out-stream)
 
     (json-read-digits-h stream out-stream)
@@ -68,7 +66,7 @@
 )
 
 
-;;; Read a sequence of digits from a stream as a string
+;;; Legge una sequenza di cifre da uno stream come stringa.
 (defun json-read-digits (stream)
   (with-output-to-string (out)
     (json-read-digits-h stream out)
@@ -76,22 +74,23 @@
 )
 
 
-;;; Read a JSON number from a stream
+;;; Legge un numero JSON da uno stream.
 (defun json-read-number (stream)
   (read-from-string (with-output-to-string (out)
-    ; Reads the minus sign if present
+    ; Legge il segno meno, se presente
     (when (json-read-char stream #\- :ignore-ws t) (write-char #\- out))
-    ; Reads the integer part
+
+    ; Legge la parte intera
     (write-string (json-read-digits stream) out)
 
-    ; Reads the decimal part if present
+    ; Legge la parte decimale, se presente
     (when (char-equal (peek-char nil stream nil) #\.)
       (json-read-char stream #\.)
       (write-char #\. out)
       (write-string (json-read-digits stream) out)
     )
 
-    ; Reads the exponent part if present
+    ; Legge la parte esponenziale, se presente
     (when (equal (peek-char nil stream nil) #\e)
       (json-read-char stream #\e) (write-char #\e out)
       (when (json-read-char stream #\+) (write-char #\+ out))
@@ -102,11 +101,9 @@
 )
 
 
-;;; Reads an escape sequence (after \)
+;;; Legge una sequenza di escape (dopo \)
 (defun json-read-escape (stream)
-  "Reads an escape sequence from a stream (after a \\)"
   (let ((*c* (read-char stream nil)))
-    ; Decl
     (unless *c*
       (error "expected escape sequence"))
 
@@ -116,7 +113,7 @@
       ; (#\/ #\/)
       (#\n #\linefeed)
       (#\t #\tab)
-      (#\f #\page) ; #\formfeed is #\page
+      (#\f #\page) ; #\formfeed è #\page
       (#\b #\backspace)
       (#\r #\return)
 
@@ -125,13 +122,12 @@
       ;          B = 0x0B00
       ;          C = 0x00C0
       ;          D = 0x000D
-      ;  bitwise + = 0xABCD -> code to char
+      ; bitwise  + = 0xABCD
       (#\u (let ((*mostSB* (digit-char-p (read-char stream) 16))
                   (*moreSB* (digit-char-p (read-char stream) 16))
                   (*lessSB* (digit-char-p (read-char stream) 16))
                   (*leastSB* (digit-char-p (read-char stream) 16))
                 )
-              ; Decl
               (code-char (logior
                             (ash *mostSB* 12)
                             (ash *moreSB*  8)
@@ -149,20 +145,20 @@
 )
 
 
-;;; Read a JSON string from a stream until a char is found.
-;;; out-stream is a class so it's passed by reference
+;;; Legge una stringa JSON da uno stream fino a che non trova un carattere.
+;;; out-stream è una classe quindi viene passato per riferimento.
 (defun json-read-string-h (stream out-stream &key until (escapes nil))
 
   (let ((*c* (read-char stream nil)))
-    ; Decl
     (unless *c*
       (error "unexpected eof"))
 
-    ; Stop reading, return
+    ; Ferma la lettura
     (when (char-equal *c* until)
       (return-from json-read-string-h T)
     )
-    ; Got an escape read it or else write the read character
+
+    ; Legge un escape o scrive il carettere letto
     (if (and (char-equal *c* #\\) escapes)
       (write-char (json-read-escape stream) out-stream)
       (write-char *c* out-stream)
@@ -173,10 +169,10 @@
 )
 
 
-;;; Read a JSON string from a stream
+;;; Legge una stringa JSON da uno stream.
 (defun json-read-string (stream &key (escapes t))
 
-  ; Starts with " and removes from stream
+  ; Inizia con " e rimuove dallo stream
   (json-read-char stream #\" :ignore-ws t)
 
   (with-output-to-string (out)
@@ -185,30 +181,29 @@
 )
 
 
-;;; Read the content of a JSON array from a stream
+;;; Legge un array JSON da uno stream fino a che non trova un carattere.
 (defun json-read-array-h (stream out-list)
-  ; Read a value and push to list
+  ; Legge un valore e lo aggiunge alla lista
   (push (json-read-value stream) out-list)
 
-  ; End recursion if there is a ] and return reverse of list
+  ; Termina la ricorsione se c'è un ] e ritorna la lista al contrario
   (when (json-read-char stream #\] :ignore-ws t)
     (return-from json-read-array-h (reverse out-list))
   )
 
-  ; Recurse if there is a comma and remove it
+  ; Ricorsione se c'è una virgola e la rimuove
   (when (json-read-char stream #\, :ignore-ws t)
     (json-read-array-h stream out-list)
   )
 )
 
 
-;;; Read a JSON array from a stream
+;;; Legge un array JSON da uno stream.
 (defun json-read-array (stream)
-  "Reads a JSON array from a stream"
-  ; Starts with [ and removes from stream
+  ; inizia con [ e rimuove dallo stream
   (json-read-char stream #\[ :ignore-ws t)
 
-  ; If empty return empty list and remove ]
+  ; Se vuoto ritorna una lista vuota e rimuove ]
   (when (json-read-char stream #\] :ignore-ws t)
     (return-from json-read-array nil)
   )
@@ -216,40 +211,38 @@
   (json-read-array-h stream (list 'jsonarray))
 )
 
-;;; Read the content of a JSON object from a stream
-(defun json-read-object-h (stream out-list)
-  ; Read a value and push to list
 
-  ; Read key
+;;; Legge un oggetto JSON da uno stream fino a che non trova un carattere.
+(defun json-read-object-h (stream out-list)
+  ; Legge la key
   (let ((*key* (json-read-string stream)))
-    ; Read :
+    ; Legge :
     (json-read-char stream #\: :ignore-ws t)
-    ; Read value
+    ; Legge il valore
     (let ((*value* (json-read-value stream)))
-      ; Push to list
+      ; Inserisce nella lista
       (push (list *key* *value*) out-list)
     )
   )
 
-  ; End recursion if there is a ] and return reverse of list
+  ; Termina la ricorsione se c'è un } e ritorna la lista al contrario
   (when (json-read-char stream #\} :ignore-ws t)
     (return-from json-read-object-h (reverse out-list))
   )
 
-  ; Recurse if there is a comma and remove it
+  ; Ricorsione se c'è una virgola e la rimuove
   (when (json-read-char stream #\, :ignore-ws t)
     (json-read-object-h stream out-list)
   )
 )
 
 
-;;; Read a JSON object from a stream
+;;; Legge un oggetto JSON da uno stream.
 (defun json-read-object (stream)
-  "Reads a JSON object from a stream"
-  ; Starts with { and removes from stream
+  ; Inizia con { e rimuove dallo stream
   (json-read-char stream #\{ :ignore-ws t)
 
-  ; If empty return empty list and remove }
+  ; Se vuoto ritorna una lista vuota e rimuove }
   (when (json-read-char stream #\} :ignore-ws t)
     (return-from json-read-object nil)
   )
@@ -257,7 +250,8 @@
   (json-read-object-h stream (list 'jsonobj))
 )
 
-;;; Read a JSON value from a stream
+
+;;; Legge un valore JSON da uno stream.
 (defun json-read-value (stream)
   (case (peek-char t stream)
     (#\t (json-read-true stream))
@@ -270,39 +264,44 @@
   )
 )
 
-;;; Writes a JSON value to a stream
+
+;;; Scrive un valore JSON su uno stream.
 (defun json-write-true (stream)
   (write-string "true" stream)
 )
 
-;;; Writes a JSON false to a stream
+
+;;; Scrive il valore false su uno stream.
 (defun json-write-false (stream)
   "Writes a JSON false to a stream"
   (write-string "false" stream)
 )
 
-;;; Writes a JSON null to a stream
+
+;;; Scrive il valore null su uno stream.
 (defun json-write-null (stream)
   (write-string "null" stream)
 )
 
-;;; Writes a JSON number to a stream
+
+;;; Scrive un numero JSON su uno stream.
 (defun json-write-number (stream value)
   (unless (numberp value) (return-from json-write-number nil))
   (write-string (format nil "~a" value) stream)
 )
 
-;;; Writes a JSON string to a stream
+
+;;; Scrive una stringa JSON su uno stream.
 (defun json-write-string (stream value)
   (unless (stringp value) (return-from json-write-string nil))
   (format stream "\"~a\"" value)
 )
 
-;;; Writes the content of a JSON array to a stream
+
+;;; Scrive il contenuto di un array JSON su uno stream.
 (defun json-write-array-h (stream vals)
   (let ((value (first vals))
         (rest (rest vals)))
-      ;  Decl
     (json-write-value stream value)
     (when (not (null rest))
       (format stream ",")
@@ -311,7 +310,8 @@
   )
 )
 
-;;; Writes a JSON array to a stream
+
+;;; Scrive un array JSON su uno stream.
 (defun json-write-array (stream arr)
   (unless (listp arr) (return-from json-write-array nil))
   (when (equal (first arr) 'jsonarray)
@@ -323,12 +323,12 @@
   )
 )
 
-;;; Writes the content of a JSON object to a stream
+
+;;; Scrive il contenuto di un oggetto JSON su uno stream.
 (defun json-write-object-h (stream vals)
   (let ((key (first (first vals)))
         (value (second (first vals)))
         (rest (rest vals)))
-      ;  Decl
     (json-write-string stream key)
     (format stream ":")
     (json-write-value stream value)
@@ -339,7 +339,8 @@
   )
 )
 
-;;; Writes a JSON object to a stream
+
+;;; Scrive un oggetto JSON su uno stream.
 (defun json-write-object (stream obj)
   (unless (listp obj) (return-from json-write-object nil))
   (when (equal (first obj) 'jsonobj)
@@ -351,7 +352,8 @@
   )
 )
 
-;;; Writes a JSON value to a stream
+
+;;; Scrive un valore JSON su uno stream.
 (defun json-write-value (stream value)
   (when (numberp value)
     (return-from json-write-value (json-write-number stream value))
@@ -376,32 +378,36 @@
   )
 )
 
-;;; Parses a JSON string
+
+;;; Parse di una stringa JSON.
 (defun jsonparse (string)
   (with-input-from-string (in string)
     (json-read-value in)
   )
 )
 
-;;; Reads a JSON file
+
+;;; Legge un file JSON.
 (defun jsonread (path)
   (with-open-file (in path :direction :input)
     (json-read-value in)
   )
 )
 
-;;; Dumps a JSON object to a file
+
+;;; Scrive un oggetto JSON su un file.
 (defun jsondump (json path)
   (with-open-file (out path :direction :output)
     (json-write-value out json)
   )
 )
 
-;;; Access a JSON object
+
+;;; Accede ad un oggetto JSON, restituendo il valore corrispondente.
 (defun jsonaccess (json &rest indices)
-  ; if indices is empty return json
+  ; Se gli indici sono vuoti, restituisce il JSON.
   (when (null (first indices)) (return-from jsonaccess json))
-  ; if not a list, return nil
+  ; Se non è una lista, restituisce nil.
   (unless (listp json) (return-from jsonaccess nil))
 
   (let ((index (first indices))
