@@ -46,7 +46,7 @@ jvalue(S, Val) :- jstring(S, Val).
 %
 jarray([], jsonarray([])) :- !.
 
-jarray([X|Xs], jsonarray([Out|Outs])) :-
+jarray([X | Xs], jsonarray([Out | Outs])) :-
     jvalue(X, Out),
     jarray(Xs, jsonarray(Outs)).
 
