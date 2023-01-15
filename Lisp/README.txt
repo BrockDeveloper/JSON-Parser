@@ -40,7 +40,7 @@ JSONPARSE
 Accetta in ingresso una stringa.
 Produce una struttura così come sopra definita.
 
-JSONPARSE
+JSONACCESS
 Accetta un oggetto JSON, così come prodotto dal JSONPARSE e una serie di campi.
 Recupera l'oggetto corrispondente.
 n.b. Un campo rappresentato da N>=0 rappresenta un indice di un array JSON.

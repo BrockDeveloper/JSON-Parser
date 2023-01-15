@@ -2,7 +2,8 @@
 ;;;; Author: 886261 Damiano Pellegrini
 
 
-;;;; json-parsing.l
+;;;; -*- Mode: Lisp -*-
+;;;; jsonparse.l
 
 
 ;;; Legge un carattere da uno stream, se presente.
@@ -42,17 +43,17 @@
 
 
 ;;; Legge una stringa JSON da uno stream.
-;;; out-stream è una classe quindi viene passato per riferimento.
+;;; out-stream e' una classe quindi viene passato per riferimento.
 (defun json-read-digits-h (stream out-stream)
   (let ((*c* (peek-char nil stream nil)))
     (unless *c*
       (return-from json-read-digits-h T))
 
-    ; Se non è una cifra, termina
+    ; Se non e' una cifra, termina
     (unless (digit-char-p *c*)
       (return-from json-read-digits-h T))
 
-    ; Char è una cifra, scrive sull'output stream
+    ; Char e' una cifra, scrive sull'output stream
     (write-char (read-char stream) out-stream)
 
     (json-read-digits-h stream out-stream)))
@@ -100,16 +101,9 @@
     (case *c*
           (#\n #\linefeed)
           (#\t #\tab)
-          (#\f #\page) ; #\formfeed è #\page
+          (#\f #\page)
           (#\b #\backspace)
           (#\r #\return)
-
-                                        ; unicode
-                                        ; uABCD -> A = 0xA000
-                                        ;          B = 0x0B00
-                                        ;          C = 0x00C0
-                                        ;          D = 0x000D
-                                        ;bitwise  + = 0xABCD
 
           (#\u (let ((*mostSB* (digit-char-p (read-char stream) 16))
                      (*moreSB* (digit-char-p (read-char stream) 16))
@@ -125,7 +119,7 @@
 
 
 ;;; Legge una stringa JSON da uno stream fino a che non trova un carattere.
-;;; out-stream è una classe quindi viene passato per riferimento.
+;;; out-stream e' una classe quindi viene passato per riferimento.
 (defun json-read-string-h (stream out-stream &key until (escapes nil))
   (let ((*c* (read-char stream nil)))
     (unless *c*
@@ -161,11 +155,11 @@
   ; Legge un valore e lo aggiunge alla lista
   (push (json-read-value stream) out-list)
 
-  ; Termina la ricorsione se c'è un ] e ritorna la lista al contrario
+  ; Termina la ricorsione se c'e' un ] e ritorna la lista al contrario
   (when (json-read-char stream #\] :ignore-ws t)
     (return-from json-read-array-h (reverse out-list)))
 
-  ; Ricorsione se c'è una virgola e la rimuove
+  ; Ricorsione se c'e' una virgola e la rimuove
   (when (json-read-char stream #\, :ignore-ws t)
     (json-read-array-h stream out-list)))
 
@@ -193,11 +187,11 @@
       ; Inserisce nella lista
       (push (list *key* *value*) out-list)))
 
-  ; Termina la ricorsione se c'è un } e ritorna la lista al contrario
+  ; Termina la ricorsione se c'e' un } e ritorna la lista al contrario
   (when (json-read-char stream #\} :ignore-ws t)
     (return-from json-read-object-h (reverse out-list)))
 
-  ; Ricorsione se c'è una virgola e la rimuove
+  ; Ricorsione se c'e' una virgola e la rimuove
   (when (json-read-char stream #\, :ignore-ws t)
     (json-read-object-h stream out-list)))
 
@@ -347,7 +341,7 @@
 (defun jsonaccess (json &rest indices)
   ; Se gli indici sono vuoti, restituisce il JSON.
   (when (null (first indices)) (return-from jsonaccess json))
-  ; Se non è una lista, restituisce nil.
+  ; Se non e' una lista, restituisce nil.
   (unless (listp json) (return-from jsonaccess nil))
 
   (let ((index (first indices))
