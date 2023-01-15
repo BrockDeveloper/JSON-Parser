@@ -366,7 +366,7 @@
                                               (string-equal a b)))))
                              idxs)))
           ('jsonarray (when (integerp index)
-                        (jsonaccess (nth index value) idxs)))
+                        (apply #'jsonaccess (nth index value) idxs)))
           (otherwise nil))))
 
 
