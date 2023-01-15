@@ -1,9 +1,9 @@
-%%%% Author: 886155 Andrea Broccoletti
-%%%% Author: 886261 Damiano Pellegrini
-
-
 %%%% -*- Mode: Prolog -*-
 %%%% jsonparse.pl
+
+
+%%%% Author: 886155 Andrea Broccoletti
+%%%% Author: 886261 Damiano Pellegrini
 
 
 %! jbool(S, Val)
@@ -170,3 +170,6 @@ jsondump(Obj, File) :-
     write(Stream, String),
     close(Stream),
     !.
+
+
+%%%%	end of file -- jsonparse.pl --

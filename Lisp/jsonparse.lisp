@@ -1,9 +1,9 @@
-;;;; Author: 886155 Andrea Broccoletti
-;;;; Author: 886261 Damiano Pellegrini
-
-
 ;;;; -*- Mode: Lisp -*-
 ;;;; jsonparse.l
+
+
+;;;; Author: 886155 Andrea Broccoletti
+;;;; Author: 886261 Damiano Pellegrini
 
 
 ;;; Legge un carattere da uno stream, se presente.
@@ -12,7 +12,8 @@
     (read-char stream)))
 
 
-;;; Legge la stringa \"true\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Legge la stringa \"true\" preceduta da eventuali spazi
+;;; bianchi da stream.
 ;;; Restituisce true ma rimuove il carattere dallo stream.
 (defun json-read-true (stream)
   (json-read-char stream #\t :ignore-ws t)
@@ -21,7 +22,8 @@
   (json-read-char stream #\e))
 
 
-;;; Legge la stringa \"false\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Legge la stringa \"false\" preceduta da eventuali spazi
+;;; bianchi da stream.
 ;;; Restituisce false ma rimuove il carattere dallo stream.
 (defun json-read-false (stream)
   (json-read-char stream #\f :ignore-ws t)
@@ -32,7 +34,8 @@
   'false)
 
 
-;;; Legge la stringa \"null\" preceduta da eventuali spazi bianchi da uno stream.
+;;; Legge la stringa \"null\" preceduta da eventuali spazi bianchi
+;;; da stream.
 ;;; Restituisce nil ma rimuove il carattere dallo stream.
 (defun json-read-null (stream)
   (json-read-char stream #\n :ignore-ws t)
@@ -105,10 +108,14 @@
           (#\b #\backspace)
           (#\r #\return)
 
-          (#\u (let ((*mostSB* (digit-char-p (read-char stream) 16))
-                     (*moreSB* (digit-char-p (read-char stream) 16))
-                     (*lessSB* (digit-char-p (read-char stream) 16))
-                     (*leastSB* (digit-char-p (read-char stream) 16)))
+          (#\u (let ((*mostSB* (digit-char-p
+                                (read-char stream) 16))
+                     (*moreSB* (digit-char-p
+                                (read-char stream) 16))
+                     (*lessSB* (digit-char-p
+                                (read-char stream) 16))
+                     (*leastSB* (digit-char-p
+                                 (read-char stream) 16)))
                  (code-char (logior
                              (ash *mostSB* 12)
                              (ash *moreSB*  8)
@@ -118,7 +125,7 @@
           (otherwise *c*))))
 
 
-;;; Legge una stringa JSON da uno stream fino a che non trova un carattere.
+;;; Legge una stringa JSON da uno stream fino a un carattere.
 ;;; out-stream e' una classe quindi viene passato per riferimento.
 (defun json-read-string-h (stream out-stream &key until (escapes nil))
   (let ((*c* (read-char stream nil)))
@@ -150,12 +157,12 @@
                           :escapes escapes)))
 
 
-;;; Legge un array JSON da uno stream fino a che non trova un carattere.
+;;; Legge un array JSON da uno stream fino a un carattere.
 (defun json-read-array-h (stream out-list)
   ; Legge un valore e lo aggiunge alla lista
   (push (json-read-value stream) out-list)
 
-  ; Termina la ricorsione se c'e' un ] e ritorna la lista al contrario
+  ; Termina se c'e' un ] e ritorna la lista al contrario
   (when (json-read-char stream #\] :ignore-ws t)
     (return-from json-read-array-h (reverse out-list)))
 
@@ -176,7 +183,7 @@
   (json-read-array-h stream (list 'jsonarray)))
 
 
-;;; Legge un oggetto JSON da uno stream fino a che non trova un carattere.
+;;; Legge un oggetto JSON da uno stream fino a un carattere.
 (defun json-read-object-h (stream out-list)
   ; Legge la key
   (let ((*key* (json-read-string stream)))
@@ -187,7 +194,7 @@
       ; Inserisce nella lista
       (push (list *key* *value*) out-list)))
 
-  ; Termina la ricorsione se c'e' un } e ritorna la lista al contrario
+  ; Termina se c'e' un } e ritorna la lista al contrario
   (when (json-read-char stream #\} :ignore-ws t)
     (return-from json-read-object-h (reverse out-list)))
 
@@ -361,3 +368,6 @@
           ('jsonarray (when (integerp index)
                         (jsonaccess (nth index value) idxs)))
           (otherwise nil))))
+
+
+;;;;	end of file -- jsonparse.lisp --
