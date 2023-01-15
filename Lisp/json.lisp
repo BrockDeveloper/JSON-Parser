@@ -395,7 +395,7 @@
         (apply #'jsonaccess (first (rest (assoc index value :test (lambda (a b) (string-equal a b))))) idxs)
       ))
       ('jsonarray (when (integerp index)
-        (jsonaccess (nth index value) idxs)
+        (apply #'jsonaccess (nth index value) idxs)
       ))
       (otherwise nil)
   ))
@@ -412,6 +412,7 @@
 ; (format t "~s~&" (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))
 ; (format t "access_dami-array: ~s~&" (jsonaccess (jsonparse "[3, 4, 5]") 1))
 ; (format t "access_dami-oggetto: ~s~&" (jsonaccess (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}") "null"))
+; (format t "access_pdf: ~s~&" (jsonaccess (jsonparse "{\"name\": \"Zaphod\", \"heads\": [[\"Head1\"],[\"Head2\"]]}") "heads" 1 0))
 
 ; ; Write Tests
 ; (format t "encoded: ~s~%" (with-output-to-string (out) (json-write-value out (jsonparse "{\"name\": \"value\", \"true\": true, \"null\": {\"null\": [\"ciao\", true, 31.415e-1]}}"))))
