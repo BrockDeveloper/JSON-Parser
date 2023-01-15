@@ -7,7 +7,7 @@
 
 
 ## Descrizione
-libreria, scritta in Prolog, che consente di costruire una struttura dati che 
+Libreria, scritta in Prolog, che consente di costruire una struttura dati che 
 rappresenta degli oggetti JSON, a partire dalla loro rappresentazione come 
 stringhe.
 
@@ -39,17 +39,17 @@ Elements = []
 Elements = [Value | MoreElements]
 
 
-## utilizzo del Parser
+## Utilizzo del Parser
 il parser fornisce due funzioni:
 
 JSONPARSE
-jsonparse(JSONString, Object).
+?- jsonparse(JSONString, Object).
 Risulta vero se JSONString (una stringa SWI Prolog o un atomo Prolog) può venire
 scorporata come stringa, numero, o nei termini composti così come sopra 
 descritte.
 
 JSONACCESS
-jsonaccess(Jsonobj, Fields, Result)
+?- jsonaccess(Jsonobj, Fields, Result)
 Risulta vero quando Result è recuperabile seguendo la catena di campi presenti
 in Fields (una lista) a partire da Jsonobj. Un campo rappresentato da N>=0
 corrisponde a un indice di un array JSON.
@@ -60,11 +60,11 @@ Questa libreria fornisce anche due funzioni per la lettura e la scrittura
 su file.
 
 JSONREAD
-jsonread(FileName, JSON).
+?- jsonread(FileName, JSON).
 Apre il file e ha successo se riesce a costruire un oggetto JSON.
 
 JSONDUMP
-jsondump(JSON, FileName).
+?- jsondump(JSON, FileName).
 Scrive l'oggetto JSON sul file in sintassi JSON.
 
 
@@ -74,11 +74,11 @@ Considerando i seguenti nella forma:
 <risposta>*
 
 e.g. 1
-jsonparse('{"nome" : "Arthur", "cognome" : "Dent"}', O),
+?- jsonparse('{"nome" : "Arthur", "cognome" : "Dent"}', O),
 jsonaccess(O, ["nome"], R).
 O = jsonobj([(”nome”, ”Arthur”), (”cognome”, ”Dent”)])
 R = ”Arthur”
 
 e.g. 2
-jsonparse(’[]’, X).
+?- jsonparse(’[]’, X).
 X = jsonarray([]).

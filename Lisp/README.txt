@@ -7,7 +7,7 @@
 
 
 ## Descrizione
-libreria, scritta in Lisp, che consente di costruire una struttura dati che 
+Libreria, scritta in Lisp, che consente di costruire una struttura dati che 
 rappresenta degli oggetti JSON, a partire dalla loro rappresentazione come 
 stringhe.
 
@@ -33,7 +33,7 @@ value = string | number | Object
 elements = value*
 
 
-## utilizzo del Parser
+## Utilizzo del Parser
 il parser fornisce due funzioni:
 
 JSONPARSE
