@@ -202,7 +202,7 @@
   (json-read-char stream #\[ :ignore-ws t)
 
   ; If empty return empty list and remove ]
-  (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array nil))
+  (when (json-read-char stream #\] :ignore-ws t) (return-from json-read-array (list 'jsonarray)))
 
   (json-read-array-h stream (list 'jsonarray))
 )
@@ -238,7 +238,7 @@
   (json-read-char stream #\{ :ignore-ws t)
 
   ; If empty return empty list and remove }
-  (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object nil))
+  (when (json-read-char stream #\} :ignore-ws t) (return-from json-read-object (list 'jsonobj)))
 
   (json-read-object-h stream (list 'jsonobj))
 )
